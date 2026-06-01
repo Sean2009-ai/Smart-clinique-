@@ -6,7 +6,7 @@ import google.generativeai as genai
 app = Flask(__name__)
 
 # 🔑 Remplace par tes vraies clés
-GEMINI_API_KEY = ""
+GEMINI_API_KEY = "AQ.Ab8RN6L0YtMdxHjvgbwWdY97zMQ44zi4IdQnxsqOa1Q27j8NsQ"
 TWILIO_ACCOUNT_SID = "AC22bed94323d802ab3436d0b4c5293110"
 TWILIO_AUTH_TOKEN = "TON_AUTH_TOKEN_ICI"
 
