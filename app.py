@@ -7,8 +7,8 @@ app = Flask(__name__)
 
 # 🔑 Remplace par tes vraies clés
 GEMINI_API_KEY = "AQ.Ab8RN6L0YtMdxHjvgbwWdY97zMQ44zi4IdQnxsqOa1Q27j8NsQ"
-TWILIO_ACCOUNT_SID = "AC22bed94323d802ab3436d0b4c5293110"
-TWILIO_AUTH_TOKEN = "TON_AUTH_TOKEN_ICI"
+TWILIO_ACCOUNT_SID = "SKe174f79dc4afea2539256fbfc5d988a5"
+TWILIO_AUTH_TOKEN = "j5kTHGUcfFGEamIxAsZzWos0zSvWzotl"
 
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel("gemini-2.5-flash")
