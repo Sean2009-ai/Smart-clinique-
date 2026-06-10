@@ -7,7 +7,6 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#059669">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SmartClinique">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -18,182 +17,423 @@
 <div id="root"></div>
 <script type="text/babel">
 
-const GEMINI_KEY = "AQ.Ab8RN6L0YtMdxHjvgbwWdY97zMQ44zi4IdQnxsqOa1Q27j8NsQ";
+const API = "http://localhost:5000";
+const G   = "#059669";
+const G2  = "#065f46";
 
-const CLINIC = {
-  name: "Clinique Sainte-Marie",
-  phone: "+225 07 00 00 00",
-  address: "123 Avenue de la Santé, Abidjan",
-  hours: "Lun–Sam : 7h–20h | Urgences : 24h/24",
-  prices: { consultation: "5 000 FCFA", prenatal: "8 000 FCFA", vaccination: "3 000 FCFA" }
-};
+// ─── Hook générique fetch ──────────────────────────────────
+function useApi(endpoint, deps = []) {
+  const [data, setData]       = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError]     = React.useState(null);
 
-const SYSTEM_PROMPT = `Tu es la secrétaire virtuelle de ${CLINIC.name}. 
-Tu gères UNIQUEMENT : les rendez-vous, les horaires, les tarifs et les directions.
-Tu ne donnes JAMAIS de conseils médicaux. Si quelqu'un pose une question médicale, dis : "Pour toute question médicale, nos médecins seront heureux de vous aider lors de votre consultation."
-Horaires: ${CLINIC.hours}
-Téléphone: ${CLINIC.phone}
-Adresse: ${CLINIC.address}
-Tarifs: Consultation=${CLINIC.prices.consultation}, Prénatale=${CLINIC.prices.prenatal}, Vaccination=${CLINIC.prices.vaccination}
-Réponds toujours en français, de façon chaleureuse et professionnelle.`;
+  React.useEffect(() => {
+    setLoading(true);
+    fetch(API + endpoint)
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }, deps);
 
-const APPOINTMENTS = [
-  {id:1, name:"Aminata Koné", phone:"+225 07 11 22 33", type:"Consultation prénatale", date:"02 Juin 2026", time:"09h00", status:"confirmé"},
-  {id:2, name:"Fatou Diallo", phone:"+225 05 44 55 66", type:"Vaccination", date:"02 Juin 2026", time:"10h30", status:"en attente"},
-];
+  return { data, loading, error, reload: () => setLoading(true) };
+}
 
-function App() {
-  const [tab, setTab] = React.useState("dashboard");
+// ─── Composants UI ────────────────────────────────────────
+function Spinner() {
+  return <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>⏳ Chargement...</div>;
+}
+
+function ApiError() {
+  return (
+    <div style={{ background: "#1f0d0d", borderRadius: 12, padding: 16, color: "#f87171", fontSize: 13, textAlign: "center" }}>
+      ⚠️ Impossible de contacter le serveur local.<br />
+      <span style={{ color: "#9ca3af" }}>Assurez-vous que app.py est démarré.</span>
+    </div>
+  );
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────
+function Dashboard() {
+  const { data: stats, loading, error } = useApi("/api/stats");
+  const { data: clinic } = useApi("/api/clinic");
+
+  if (loading) return <Spinner />;
+  if (error)   return <ApiError />;
+
+  const cards = [
+    { label: "Conversations",     value: stats.conversations,      color: "#10b981", icon: "💬" },
+    { label: "Patients total",    value: stats.total_patients,     color: "#3b82f6", icon: "👥" },
+    { label: "RDV aujourd'hui",   value: stats.total_appointments, color: "#f59e0b", icon: "📅" },
+    { label: "En attente",        value: stats.pending,            color: "#ef4444", icon: "⏳" },
+  ];
+
+  return (
+    <div>
+      {clinic && (
+        <div style={{ background: `linear-gradient(135deg, ${G2}, ${G})`, borderRadius: 14, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 11, opacity: .8, marginBottom: 4 }}>Clinique active</div>
+          <div style={{ fontWeight: 700, fontSize: 17 }}>{clinic.name}</div>
+          <div style={{ fontSize: 12, opacity: .8, marginTop: 2 }}>{clinic.phone}</div>
+        </div>
+      )}
+      <h2 style={{ margin: "0 0 14px", fontSize: 18 }}>Tableau de bord</h2>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+        {cards.map((s, i) => (
+          <div key={i} style={{ background: "#1a1a1a", borderRadius: 12, padding: 14, borderTop: `3px solid ${s.color}` }}>
+            <div style={{ fontSize: 18, marginBottom: 6 }}>{s.icon}</div>
+            <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>{s.label}</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: s.color }}>{s.value ?? 0}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ background: "#1a1a1a", borderRadius: 12, padding: 14 }}>
+        <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 8 }}>📊 Résumé</div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #222" }}>
+          <span style={{ color: "#d1d5db", fontSize: 13 }}>RDV confirmés</span>
+          <span style={{ color: G, fontWeight: 700 }}>{stats.confirmed ?? 0}</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}>
+          <span style={{ color: "#d1d5db", fontSize: 13 }}>RDV en attente</span>
+          <span style={{ color: "#f59e0b", fontWeight: 700 }}>{stats.pending ?? 0}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── CONVERSATIONS ─────────────────────────────────────────
+function Conversations() {
+  const [input, setInput]     = React.useState("");
   const [messages, setMessages] = React.useState([
-    {from:"bot", text:"👋 Bonjour ! Je suis la secrétaire virtuelle de "+CLINIC.name+". Comment puis-je vous aider ?"}
+    { from: "bot", text: "👋 Bonjour ! Je suis la secrétaire virtuelle. Comment puis-je vous aider ?" }
   ]);
-  const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  const [apts, setApts] = React.useState(APPOINTMENTS);
-  const [showForm, setShowForm] = React.useState(false);
-  const [form, setForm] = React.useState({name:"",phone:"",type:"Consultation",date:"",time:""});
+  const clinic = JSON.parse(localStorage.getItem("sc_clinic") || "{}");
+
+  const GEMINI_KEY = "AQ.Ab8RN6L0YtMdxHjvgbwWdY97zMQ44zi4IdQnxsqOa1Q27j8NsQ";
+
+  const SYSTEM_PROMPT = `Tu es la secrétaire virtuelle de ${clinic.name || "la clinique"}.
+Tu gères UNIQUEMENT : les rendez-vous, les horaires, les tarifs et les directions.
+Tu ne donnes JAMAIS de conseils médicaux.
+Horaires: ${clinic.hours || "non renseignés"}
+Téléphone: ${clinic.phone || "non renseigné"}
+Adresse: ${clinic.address || "non renseignée"}
+Tarifs: ${clinic.prices || "non renseignés"}
+Réponds en français, de façon chaleureuse et professionnelle. Max 3 phrases.`;
 
   async function sendMessage() {
     if (!input.trim() || loading) return;
     const text = input.trim();
     setInput("");
-    setMessages(prev => [...prev, {from:"user", text}]);
+    setMessages(prev => [...prev, { from: "user", text }]);
     setLoading(true);
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          system_instruction:{parts:[{text:SYSTEM_PROMPT}]},
-          contents:[...messages.filter(m=>m.from!=="bot"||messages.indexOf(m)>0).map(m=>({
-            role:m.from==="user"?"user":"model",
-            parts:[{text:m.text}]
-          })),{role:"user",parts:[{text}]}]
+          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: messages.concat({ from: "user", text }).map(m => ({
+            role: m.from === "user" ? "user" : "model",
+            parts: [{ text: m.text }]
+          }))
         })
       });
       const data = await res.json();
       const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Désolée, réessayez.";
-      setMessages(prev => [...prev, {from:"bot", text:reply}]);
+      setMessages(prev => [...prev, { from: "bot", text: reply }]);
     } catch {
-      setMessages(prev => [...prev, {from:"bot", text:"⚠️ Erreur de connexion. Appelez le "+CLINIC.phone}]);
+      setMessages(prev => [...prev, { from: "bot", text: "⚠️ Erreur de connexion." }]);
     }
     setLoading(false);
   }
 
-  function addApt() {
-    if (!form.name || !form.date) return;
-    setApts(prev => [...prev, {...form, id:Date.now(), status:"en attente"}]);
-    setForm({name:"",phone:"",type:"Consultation",date:"",time:""});
-    setShowForm(false);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "72vh" }}>
+      <h2 style={{ margin: "0 0 14px", fontSize: 18 }}>Conversations</h2>
+      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+        {messages.map((m, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: m.from === "user" ? "flex-end" : "flex-start" }}>
+            <div style={{
+              maxWidth: "80%",
+              background: m.from === "user" ? `linear-gradient(135deg, ${G2}, ${G})` : "#1a1a1a",
+              borderRadius: m.from === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+              padding: "10px 14px", fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-wrap"
+            }}>
+              {m.text}
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div style={{ background: "#1a1a1a", borderRadius: 12, padding: "10px 14px", width: "fit-content", color: "#9ca3af", fontSize: 13 }}>
+            ✍️ En train d'écrire...
+          </div>
+        )}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && sendMessage()}
+          placeholder="Écrivez un message..."
+          style={{ flex: 1, background: "#1a1a1a", border: "1px solid #333", borderRadius: 24, padding: "10px 16px", color: "#fff", fontSize: 14, outline: "none", fontFamily: "'DM Sans', sans-serif" }}
+        />
+        <button onClick={sendMessage} style={{ width: 44, height: 44, borderRadius: "50%", background: G, border: "none", cursor: "pointer", fontSize: 18, color: "#fff" }}>➤</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── RENDEZ-VOUS ───────────────────────────────────────────
+function Appointments() {
+  const [apts, setApts]       = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError]     = React.useState(false);
+  const [showForm, setShowForm] = React.useState(false);
+  const [form, setForm]       = React.useState({ name: "", phone: "", type: "Consultation", date: "", time: "" });
+  const [saving, setSaving]   = React.useState(false);
+
+  function load() {
+    setLoading(true);
+    fetch(API + "/api/appointments")
+      .then(r => r.json())
+      .then(d => { setApts(d); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
   }
 
-  const G = "#059669";
-  const tabs = [{id:"dashboard",icon:"📊",label:"Dashboard"},{id:"chat",icon:"💬",label:"Conversations"},{id:"appointments",icon:"📅",label:"Rendez-vous"},{id:"settings",icon:"⚙️",label:"Paramètres"}];
+  React.useEffect(load, []);
+
+  async function addApt() {
+    if (!form.name || !form.date) return;
+    setSaving(true);
+    await fetch(API + "/api/appointments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form)
+    });
+    setSaving(false);
+    setForm({ name: "", phone: "", type: "Consultation", date: "", time: "" });
+    setShowForm(false);
+    load();
+  }
+
+  async function updateStatus(id, status) {
+    await fetch(`${API}/api/appointments/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status })
+    });
+    load();
+  }
+
+  async function deleteApt(id) {
+    await fetch(`${API}/api/appointments/${id}`, { method: "DELETE" });
+    load();
+  }
+
+  if (loading) return <Spinner />;
+  if (error)   return <ApiError />;
 
   return (
-    <div style={{display:"flex",flexDirection:"column",minHeight:"100vh",color:"#fff"}}>
-      <div style={{background:"linear-gradient(135deg,#065f46,#059669)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12}}>
-        <div style={{width:36,height:36,background:"rgba(255,255,255,0.2)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🏥</div>
-        <div>
-          <div style={{fontWeight:700,fontSize:16}}>SmartClinique</div>
-          <div style={{fontSize:11,opacity:.8}}>{CLINIC.name}</div>
-        </div>
-        <div style={{marginLeft:"auto",background:"rgba(255,255,255,0.15)",borderRadius:20,padding:"4px 12px",fontSize:12,display:"flex",alignItems:"center",gap:6}}>
-          <div style={{width:7,height:7,borderRadius:"50%",background:"#4ade80"}}/>IA Active
-        </div>
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <h2 style={{ margin: 0, fontSize: 18 }}>Rendez-vous</h2>
+        <button onClick={() => setShowForm(!showForm)} style={{
+          background: G, border: "none", borderRadius: 10, padding: "8px 14px",
+          color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "'DM Sans', sans-serif"
+        }}>+ Nouveau</button>
       </div>
 
-      <div style={{flex:1,padding:16,overflowY:"auto"}}>
-        {tab==="dashboard" && (
-          <div>
-            <h2 style={{margin:"0 0 16px",fontSize:20}}>Tableau de bord</h2>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
-              {[{label:"Conversations",value:"14",color:"#10b981"},{label:"Taux résolution IA",value:"92%",color:"#3b82f6"},{label:"RDV aujourd'hui",value:"8",color:"#f59e0b"},{label:"Escalades",value:"2",color:"#ef4444"}].map((s,i)=>(
-                <div key={i} style={{background:"#1a1a1a",borderRadius:12,padding:16,borderTop:`3px solid ${s.color}`}}>
-                  <div style={{fontSize:11,color:"#9ca3af",marginBottom:6}}>{s.label}</div>
-                  <div style={{fontSize:26,fontWeight:700,color:s.color}}>{s.value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+      {showForm && (
+        <div style={{ background: "#1a1a1a", borderRadius: 14, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>Nouveau rendez-vous</div>
+          {[
+            { key: "name",  placeholder: "Nom complet" },
+            { key: "phone", placeholder: "Téléphone" },
+            { key: "date",  placeholder: "Date", type: "date" },
+            { key: "time",  placeholder: "Heure", type: "time" },
+          ].map(f => (
+            <input key={f.key} type={f.type || "text"} placeholder={f.placeholder} value={form[f.key]}
+              onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+              style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "10px", color: "#fff", fontSize: 14, marginBottom: 8, boxSizing: "border-box", outline: "none", fontFamily: "'DM Sans', sans-serif" }}
+            />
+          ))}
+          <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
+            style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "10px", color: "#fff", fontSize: 14, marginBottom: 10, boxSizing: "border-box", fontFamily: "'DM Sans', sans-serif" }}>
+            {["Consultation", "Consultation prénatale", "Vaccination", "Échographie", "Suivi post-accouchement"].map(t => <option key={t}>{t}</option>)}
+          </select>
+          <button onClick={addApt} disabled={saving} style={{
+            width: "100%", background: G, border: "none", borderRadius: 10, padding: "11px",
+            color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 14, fontFamily: "'DM Sans', sans-serif"
+          }}>
+            {saving ? "⏳ Enregistrement..." : "✅ Confirmer"}
+          </button>
+        </div>
+      )}
 
-        {tab==="chat" && (
-          <div style={{display:"flex",flexDirection:"column",height:"70vh"}}>
-            <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
-              {messages.map((m,i)=>(
-                <div key={i} style={{display:"flex",justifyContent:m.from==="user"?"flex-end":"flex-start"}}>
-                  <div style={{maxWidth:"80%",background:m.from==="user"?"linear-gradient(135deg,#065f46,#059669)":"#1a1a1a",borderRadius:m.from==="user"?"18px 18px 4px 18px":"18px 18px 18px 4px",padding:"10px 14px",fontSize:14,lineHeight:1.5,whiteSpace:"pre-wrap"}}>
-                    {m.text}
-                  </div>
+      {apts.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 40, color: "#9ca3af", fontSize: 14 }}>
+          Aucun rendez-vous pour l'instant
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {apts.map(a => (
+            <div key={a.id} style={{ background: "#1a1a1a", borderRadius: 12, padding: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>{a.name}</div>
+                  <div style={{ color: "#9ca3af", fontSize: 12, marginTop: 2 }}>📞 {a.phone}</div>
+                  <div style={{ color: "#9ca3af", fontSize: 12 }}>{a.type}</div>
                 </div>
-              ))}
-              {loading && <div style={{background:"#1a1a1a",borderRadius:12,padding:"10px 14px",width:"fit-content",color:"#9ca3af",fontSize:13}}>✍️ En train d'écrire...</div>}
-            </div>
-            <div style={{display:"flex",gap:8}}>
-              <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMessage()} placeholder="Écrivez un message..." style={{flex:1,background:"#1a1a1a",border:"1px solid #333",borderRadius:24,padding:"10px 16px",color:"#fff",fontSize:14,outline:"none"}}/>
-              <button onClick={sendMessage} style={{width:44,height:44,borderRadius:"50%",background:G,border:"none",cursor:"pointer",fontSize:18,color:"#fff"}}>➤</button>
-            </div>
-          </div>
-        )}
-
-        {tab==="appointments" && (
-          <div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <h2 style={{margin:0,fontSize:20}}>Rendez-vous</h2>
-              <button onClick={()=>setShowForm(!showForm)} style={{background:G,border:"none",borderRadius:10,padding:"8px 16px",color:"#fff",cursor:"pointer",fontWeight:600}}>+ Nouveau</button>
-            </div>
-            {showForm && (
-              <div style={{background:"#1a1a1a",borderRadius:14,padding:16,marginBottom:16}}>
-                <h3 style={{margin:"0 0 12px",fontSize:15}}>Nouveau rendez-vous</h3>
-                {[{key:"name",placeholder:"Nom complet"},{key:"phone",placeholder:"Téléphone"},{key:"date",placeholder:"Date",type:"date"},{key:"time",placeholder:"Heure",type:"time"}].map(f=>(
-                  <input key={f.key} type={f.type||"text"} placeholder={f.placeholder} value={form[f.key]} onChange={e=>setForm(p=>({...p,[f.key]:e.target.value}))} style={{width:"100%",background:"#0a0a0a",border:"1px solid #333",borderRadius:8,padding:"10px",color:"#fff",fontSize:14,marginBottom:8,boxSizing:"border-box",outline:"none"}}/>
-                ))}
-                <select value={form.type} onChange={e=>setForm(p=>({...p,type:e.target.value}))} style={{width:"100%",background:"#0a0a0a",border:"1px solid #333",borderRadius:8,padding:"10px",color:"#fff",fontSize:14,marginBottom:12,boxSizing:"border-box"}}>
-                  {["Consultation","Consultation prénatale","Vaccination","Échographie","Suivi post-accouchement"].map(t=><option key={t}>{t}</option>)}
-                </select>
-                <button onClick={addApt} style={{width:"100%",background:G,border:"none",borderRadius:10,padding:"12px",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:14}}>✅ Confirmer le RDV</button>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontWeight: 600, color: G, fontSize: 13 }}>{a.date}</div>
+                  <div style={{ color: "#9ca3af", fontSize: 12 }}>{a.time}</div>
+                  <span style={{
+                    background: a.status === "confirmé" ? "#064e3b" : "#431407",
+                    color: a.status === "confirmé" ? "#34d399" : "#fb923c",
+                    borderRadius: 20, padding: "2px 8px", fontSize: 11, fontWeight: 600
+                  }}>{a.status}</span>
+                </div>
               </div>
-            )}
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {apts.map(a=>(
-                <div key={a.id} style={{background:"#1a1a1a",borderRadius:12,padding:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{fontWeight:600,fontSize:15}}>{a.name}</div>
-                    <div style={{color:"#9ca3af",fontSize:13,marginTop:3}}>{a.type}</div>
-                    <div style={{color:"#9ca3af",fontSize:12,marginTop:2}}>📞 {a.phone}</div>
-                  </div>
-                  <div style={{textAlign:"right"}}>
-                    <div style={{fontWeight:600,color:G}}>{a.date}</div>
-                    <div style={{color:"#9ca3af",fontSize:13}}>{a.time}</div>
-                    <span style={{background:a.status==="confirmé"?"#064e3b":"#431407",color:a.status==="confirmé"?"#34d399":"#fb923c",borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:600}}>{a.status}</span>
-                  </div>
-                </div>
-              ))}
+              <div style={{ display: "flex", gap: 8 }}>
+                {a.status !== "confirmé" && (
+                  <button onClick={() => updateStatus(a.id, "confirmé")} style={{
+                    flex: 1, background: "#064e3b", border: "none", borderRadius: 8, padding: "7px",
+                    color: "#34d399", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "'DM Sans', sans-serif"
+                  }}>✅ Confirmer</button>
+                )}
+                <button onClick={() => deleteApt(a.id)} style={{
+                  flex: 1, background: "#1f0d0d", border: "none", borderRadius: 8, padding: "7px",
+                  color: "#f87171", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "'DM Sans', sans-serif"
+                }}>🗑 Supprimer</button>
+              </div>
             </div>
-          </div>
-        )}
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
-        {tab==="settings" && (
-          <div>
-            <h2 style={{margin:"0 0 16px",fontSize:20}}>Paramètres</h2>
-            <div style={{background:"#1a1a1a",borderRadius:14,padding:16}}>
-              {[{label:"Nom de la clinique",value:CLINIC.name},{label:"Téléphone",value:CLINIC.phone},{label:"Adresse",value:CLINIC.address},{label:"Horaires",value:CLINIC.hours}].map((f,i)=>(
-                <div key={i} style={{marginBottom:14}}>
-                  <div style={{fontSize:12,color:"#9ca3af",marginBottom:4}}>{f.label}</div>
-                  <input defaultValue={f.value} style={{width:"100%",background:"#0a0a0a",border:"1px solid #333",borderRadius:8,padding:"10px",color:"#fff",fontSize:14,boxSizing:"border-box",outline:"none"}}/>
-                </div>
-              ))}
-              <button style={{width:"100%",background:G,border:"none",borderRadius:10,padding:"12px",color:"#fff",fontWeight:700,cursor:"pointer"}}>💾 Sauvegarder</button>
-            </div>
+// ─── PARAMÈTRES ────────────────────────────────────────────
+function Settings() {
+  const [form, setForm]     = React.useState(null);
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved]   = React.useState(false);
+
+  React.useEffect(() => {
+    fetch(API + "/api/clinic")
+      .then(r => r.json())
+      .then(d => setForm(d))
+      .catch(() => setForm(JSON.parse(localStorage.getItem("sc_clinic") || "{}")));
+  }, []);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await fetch(API + "/api/clinic", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form)
+      });
+    } catch {}
+    localStorage.setItem("sc_clinic", JSON.stringify(form));
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  }
+
+  if (!form) return <Spinner />;
+
+  return (
+    <div>
+      <h2 style={{ margin: "0 0 14px", fontSize: 18 }}>Paramètres</h2>
+      <div style={{ background: "#1a1a1a", borderRadius: 14, padding: 16 }}>
+        {[
+          { key: "name",    label: "Nom de la clinique" },
+          { key: "phone",   label: "Téléphone" },
+          { key: "address", label: "Adresse" },
+          { key: "hours",   label: "Horaires" },
+          { key: "prices",  label: "Tarifs" },
+        ].map(f => (
+          <div key={f.key} style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 5 }}>{f.label}</div>
+            <input value={form[f.key] || ""} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+              style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "10px", color: "#fff", fontSize: 14, boxSizing: "border-box", outline: "none", fontFamily: "'DM Sans', sans-serif" }}
+            />
+          </div>
+        ))}
+        {saved && (
+          <div style={{ background: "#0d2e1f", borderRadius: 10, padding: 10, color: "#34d399", fontSize: 13, marginBottom: 12, textAlign: "center" }}>
+            ✅ Paramètres sauvegardés !
           </div>
         )}
+        <button onClick={save} disabled={saving} style={{
+          width: "100%", background: `linear-gradient(135deg, ${G2}, ${G})`, border: "none",
+          borderRadius: 10, padding: "12px", color: "#fff", fontWeight: 700,
+          cursor: "pointer", fontSize: 14, fontFamily: "'DM Sans', sans-serif"
+        }}>
+          {saving ? "⏳ Sauvegarde..." : "💾 Sauvegarder"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── APP PRINCIPALE ────────────────────────────────────────
+function App() {
+  const [tab, setTab] = React.useState("dashboard");
+
+  // Rediriger vers onboarding si pas encore configuré
+  React.useEffect(() => {
+    if (!localStorage.getItem("sc_onboarded")) {
+      window.location.href = "onboarding.html";
+    }
+  }, []);
+
+  const tabs = [
+    { id: "dashboard",    icon: "📊", label: "Dashboard" },
+    { id: "chat",         icon: "💬", label: "Conversations" },
+    { id: "appointments", icon: "📅", label: "Rendez-vous" },
+    { id: "settings",     icon: "⚙️", label: "Paramètres" },
+  ];
+
+  const screens = {
+    dashboard:    <Dashboard />,
+    chat:         <Conversations />,
+    appointments: <Appointments />,
+    settings:     <Settings />,
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", color: "#fff" }}>
+      {/* Header */}
+      <div style={{ background: `linear-gradient(135deg, ${G2}, ${G})`, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏥</div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 16 }}>SmartClinique</div>
+          <div style={{ fontSize: 11, opacity: .8 }}>Secrétaire virtuelle IA</div>
+        </div>
+        <div style={{ marginLeft: "auto", background: "rgba(255,255,255,0.15)", borderRadius: 20, padding: "4px 12px", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80" }} />IA Active
+        </div>
       </div>
 
-      <div style={{background:"#111",borderTop:"1px solid #222",padding:"8px 0",display:"flex",justifyContent:"space-around"}}>
-        {tabs.map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"4px 12px",color:tab===t.id?G:"#6b7280",fontSize:11,fontWeight:tab===t.id?700:400}}>
-            <span style={{fontSize:20}}>{t.icon}</span>
+      {/* Contenu */}
+      <div style={{ flex: 1, padding: 16, overflowY: "auto" }}>
+        {screens[tab]}
+      </div>
+
+      {/* Nav */}
+      <div style={{ background: "#111", borderTop: "1px solid #222", padding: "8px 0", display: "flex", justifyContent: "space-around" }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            background: "none", border: "none", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center",
+            gap: 3, padding: "4px 12px", color: tab === t.id ? G : "#6b7280",
+            fontSize: 11, fontWeight: tab === t.id ? 700 : 400, fontFamily: "'DM Sans', sans-serif"
+          }}>
+            <span style={{ fontSize: 20 }}>{t.icon}</span>
             {t.label}
           </button>
         ))}
@@ -202,14 +442,12 @@ function App() {
   );
 }
 
-ReactDOM.render(<App/>, document.getElementById("root"));
+ReactDOM.render(<App />, document.getElementById("root"));
 </script>
 
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-      .then(() => console.log('SW enregistré ✅'))
-      .catch(e => console.log('SW erreur:', e));
+    navigator.serviceWorker.register('sw.js');
   }
 </script>
 </body>
