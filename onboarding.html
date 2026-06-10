@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartClinique — Bienvenue</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0a0a; font-family: 'DM Sans', sans-serif; color: #fff; min-height: 100vh; }
+    input, select, textarea {
+      width: 100%; background: #111; border: 1.5px solid #222;
+      border-radius: 10px; padding: 12px 14px; color: #fff;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
+      transition: border-color .2s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #059669; }
+    input::placeholder, textarea::placeholder { color: #555; }
+    select option { background: #111; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const API = "http://localhost:5000";
+const G   = "#059669";
+const G2  = "#065f46";
+
+// ─── Étapes ───────────────────────────────────────────────
+const STEPS = [
+  { id: "welcome",  title: "Bienvenue",         icon: "👋" },
+  { id: "clinic",   title: "Votre clinique",     icon: "🏥" },
+  { id: "schedule", title: "Horaires & tarifs",  icon: "🕐" },
+  { id: "whatsapp", title: "WhatsApp IA",         icon: "💬" },
+  { id: "tour",     title: "Prise en main",       icon: "🎯" },
+  { id: "done",     title: "C'est parti !",       icon: "🚀" },
+];
+
+// ─── Composants UI ────────────────────────────────────────
+function Btn({ children, onClick, secondary, disabled }) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      width: "100%", padding: "14px", borderRadius: 12, border: "none",
+      background: disabled ? "#1a1a1a" : secondary ? "#1a1a1a" : `linear-gradient(135deg, ${G2}, ${G})`,
+      color: disabled ? "#555" : secondary ? "#9ca3af" : "#fff",
+      fontWeight: 700, fontSize: 15, cursor: disabled ? "not-allowed" : "pointer",
+      fontFamily: "'DM Sans', sans-serif", transition: "opacity .2s"
+    }}>
+      {children}
+    </button>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 6, fontWeight: 600 }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function ProgressBar({ current, total }) {
+  return (
+    <div style={{ display: "flex", gap: 6, marginBottom: 28 }}>
+      {Array.from({ length: total }).map((_, i) => (
+        <div key={i} style={{
+          flex: 1, height: 4, borderRadius: 4,
+          background: i <= current ? G : "#1a1a1a",
+          transition: "background .3s"
+        }} />
+      ))}
+    </div>
+  );
+}
+
+// ─── Écrans ───────────────────────────────────────────────
+
+function StepWelcome({ onNext }) {
+  return (
+    <div style={{ textAlign: "center", paddingTop: 20 }}>
+      <div style={{ fontSize: 64, marginBottom: 20 }}>🏥</div>
+      <div style={{
+        display: "inline-block", background: "#0d2e1f", color: G,
+        borderRadius: 20, padding: "4px 14px", fontSize: 12, fontWeight: 600, marginBottom: 16
+      }}>
+        SmartClinique v3.0
+      </div>
+      <h1 style={{ fontSize: 26, fontWeight: 700, marginBottom: 12, lineHeight: 1.3 }}>
+        Bienvenue sur<br />SmartClinique
+      </h1>
+      <p style={{ color: "#9ca3af", fontSize: 15, lineHeight: 1.6, marginBottom: 32 }}>
+        Votre secrétaire virtuelle IA intégrée à WhatsApp. En quelques minutes, votre clinique sera opérationnelle.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 32 }}>
+        {[
+          { icon: "🤖", text: "IA qui répond à vos patients sur WhatsApp" },
+          { icon: "📅", text: "Gestion des rendez-vous en temps réel" },
+          { icon: "🔒", text: "Données stockées localement sur votre ordinateur" },
+        ].map((f, i) => (
+          <div key={i} style={{
+            display: "flex", alignItems: "center", gap: 12,
+            background: "#111", borderRadius: 12, padding: "12px 14px", textAlign: "left"
+          }}>
+            <span style={{ fontSize: 20 }}>{f.icon}</span>
+            <span style={{ fontSize: 14, color: "#d1d5db" }}>{f.text}</span>
+          </div>
+        ))}
+      </div>
+      <Btn onClick={onNext}>Commencer la configuration →</Btn>
+    </div>
+  );
+}
+
+function StepClinic({ data, onChange, onNext, onBack }) {
+  const ok = data.name && data.phone && data.address;
+  return (
+    <div>
+      <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Votre clinique</h2>
+      <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 24 }}>
+        Ces informations seront utilisées par la secrétaire IA pour répondre aux patients.
+      </p>
+      <Field label="Nom de la clinique *">
+        <input placeholder="Ex : Clinique Sainte-Marie" value={data.name} onChange={e => onChange("name", e.target.value)} />
+      </Field>
+      <Field label="Numéro de téléphone *">
+        <input placeholder="Ex : +225 07 00 00 00" value={data.phone} onChange={e => onChange("phone", e.target.value)} />
+      </Field>
+      <Field label="Adresse *">
+        <input placeholder="Ex : 12 Rue de la Santé, Abidjan" value={data.address} onChange={e => onChange("address", e.target.value)} />
+      </Field>
+      <Field label="Email (optionnel)">
+        <input placeholder="contact@maclinique.com" value={data.email} onChange={e => onChange("email", e.target.value)} />
+      </Field>
+      <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+        <Btn secondary onClick={onBack}>← Retour</Btn>
+        <Btn onClick={onNext} disabled={!ok}>Suivant →</Btn>
+      </div>
+    </div>
+  );
+}
+
+function StepSchedule({ data, onChange, onNext, onBack }) {
+  return (
+    <div>
+      <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Horaires & tarifs</h2>
+      <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 24 }}>
+        La secrétaire communiquera ces informations aux patients qui posent des questions.
+      </p>
+      <Field label="Horaires d'ouverture">
+        <input placeholder="Ex : Lun–Sam : 7h–20h | Urgences : 24h/24" value={data.hours} onChange={e => onChange("hours", e.target.value)} />
+      </Field>
+      <Field label="Tarifs (séparés par des virgules)">
+        <textarea rows={3} placeholder="Ex : Consultation=5000 FCFA, Prénatale=8000 FCFA, Vaccination=3000 FCFA" value={data.prices} onChange={e => onChange("prices", e.target.value)} style={{ resize: "none" }} />
+      </Field>
+      <Field label="Services proposés">
+        <textarea rows={3} placeholder="Ex : Consultation générale, Maternité, Vaccination, Pédiatrie..." value={data.services} onChange={e => onChange("services", e.target.value)} style={{ resize: "none" }} />
+      </Field>
+      <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+        <Btn secondary onClick={onBack}>← Retour</Btn>
+        <Btn onClick={onNext}>Suivant →</Btn>
+      </div>
+    </div>
+  );
+}
+
+function StepWhatsapp({ data, onChange, onNext, onBack }) {
+  const [status, setStatus] = React.useState(null);
+
+  async function testConnection() {
+    setStatus("loading");
+    try {
+      const r = await fetch(`https://api.green-api.com/waInstance${data.instance}/getStateInstance/${data.token}`);
+      const d = await r.json();
+      setStatus(d.stateInstance === "authorized" ? "ok" : "error");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Connexion WhatsApp</h2>
+      <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 24 }}>
+        Connectez votre numéro WhatsApp via Green API pour que la secrétaire IA réponde automatiquement.
+      </p>
+
+      <div style={{ background: "#111", borderRadius: 12, padding: 14, marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: G, fontWeight: 600, marginBottom: 8 }}>📋 Comment obtenir vos clés</div>
+        {["Créez un compte sur console.green-api.com", "Créez une instance et scannez le QR Code avec WhatsApp", "Copiez l'Instance ID et le Token ci-dessous"].map((s, i) => (
+          <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 6 }}>
+            <div style={{ width: 20, height: 20, borderRadius: "50%", background: G2, color: G, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
+            <span style={{ fontSize: 13, color: "#d1d5db" }}>{s}</span>
+          </div>
+        ))}
+      </div>
+
+      <Field label="Instance ID">
+        <input placeholder="Ex : 7107643519" value={data.instance} onChange={e => onChange("instance", e.target.value)} />
+      </Field>
+      <Field label="Token API">
+        <input placeholder="Votre token Green API" value={data.token} onChange={e => onChange("token", e.target.value)} />
+      </Field>
+
+      {data.instance && data.token && (
+        <button onClick={testConnection} style={{
+          width: "100%", padding: "10px", borderRadius: 10, border: `1.5px solid ${G}`,
+          background: "transparent", color: G, fontWeight: 600, cursor: "pointer",
+          fontSize: 13, fontFamily: "'DM Sans', sans-serif", marginBottom: 14
+        }}>
+          {status === "loading" ? "⏳ Test en cours..." : "🔌 Tester la connexion"}
+        </button>
+      )}
+
+      {status === "ok" && (
+        <div style={{ background: "#0d2e1f", borderRadius: 10, padding: 12, marginBottom: 14, color: "#34d399", fontSize: 13 }}>
+          ✅ WhatsApp connecté avec succès !
+        </div>
+      )}
+      {status === "error" && (
+        <div style={{ background: "#1f0d0d", borderRadius: 10, padding: 12, marginBottom: 14, color: "#f87171", fontSize: 13 }}>
+          ❌ Connexion échouée. Vérifiez vos clés et que le QR Code a bien été scanné.
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <Btn secondary onClick={onBack}>← Retour</Btn>
+        <Btn onClick={onNext}>Suivant →</Btn>
+      </div>
+    </div>
+  );
+}
+
+function StepTour({ onNext, onBack }) {
+  const [active, setActive] = React.useState(0);
+  const features = [
+    { icon: "📊", title: "Dashboard", desc: "Suivez en temps réel les conversations, rendez-vous et statistiques de votre clinique." },
+    { icon: "💬", title: "Conversations", desc: "Visualisez tous les échanges entre la secrétaire IA et vos patients sur WhatsApp." },
+    { icon: "📅", title: "Rendez-vous", desc: "Ajoutez, confirmez ou annulez des rendez-vous. Les patients sont notifiés automatiquement." },
+    { icon: "⚙️", title: "Paramètres", desc: "Modifiez à tout moment les infos de votre clinique, horaires et tarifs." },
+  ];
+  return (
+    <div>
+      <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Prise en main</h2>
+      <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 24 }}>
+        Voici les 4 sections principales de SmartClinique.
+      </p>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        {features.map((f, i) => (
+          <button key={i} onClick={() => setActive(i)} style={{
+            flex: 1, padding: "10px 4px", borderRadius: 10, border: "none",
+            background: active === i ? G2 : "#111",
+            color: active === i ? "#fff" : "#9ca3af",
+            cursor: "pointer", fontSize: 18, fontFamily: "'DM Sans', sans-serif"
+          }}>
+            {f.icon}
+          </button>
+        ))}
+      </div>
+      <div style={{ background: "#111", borderRadius: 14, padding: 20, minHeight: 110, marginBottom: 24 }}>
+        <div style={{ fontSize: 32, marginBottom: 10 }}>{features[active].icon}</div>
+        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>{features[active].title}</div>
+        <div style={{ color: "#9ca3af", fontSize: 14, lineHeight: 1.6 }}>{features[active].desc}</div>
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <Btn secondary onClick={onBack}>← Retour</Btn>
+        <Btn onClick={onNext}>Terminer →</Btn>
+      </div>
+    </div>
+  );
+}
+
+function StepDone({ onFinish, saving }) {
+  return (
+    <div style={{ textAlign: "center", paddingTop: 20 }}>
+      <div style={{ fontSize: 64, marginBottom: 20 }}>🚀</div>
+      <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>Tout est prêt !</h2>
+      <p style={{ color: "#9ca3af", fontSize: 15, lineHeight: 1.6, marginBottom: 32 }}>
+        Votre secrétaire virtuelle est configurée. Vos patients peuvent maintenant écrire sur WhatsApp et recevoir des réponses instantanées.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 32 }}>
+        {[
+          { icon: "✅", text: "Clinique configurée" },
+          { icon: "✅", text: "Horaires et tarifs enregistrés" },
+          { icon: "✅", text: "Secrétaire IA activée" },
+        ].map((f, i) => (
+          <div key={i} style={{
+            display: "flex", alignItems: "center", gap: 12,
+            background: "#0d2e1f", borderRadius: 12, padding: "12px 14px", textAlign: "left"
+          }}>
+            <span style={{ fontSize: 18 }}>{f.icon}</span>
+            <span style={{ fontSize: 14, color: "#34d399", fontWeight: 600 }}>{f.text}</span>
+          </div>
+        ))}
+      </div>
+      <Btn onClick={onFinish} disabled={saving}>
+        {saving ? "⏳ Enregistrement..." : "Accéder au tableau de bord →"}
+      </Btn>
+    </div>
+  );
+}
+
+// ─── App principale ───────────────────────────────────────
+
+function Onboarding() {
+  const [step, setStep]   = React.useState(0);
+  const [saving, setSaving] = React.useState(false);
+
+  const [clinic, setClinic]     = React.useState({ name: "", phone: "", address: "", email: "" });
+  const [schedule, setSchedule] = React.useState({ hours: "", prices: "", services: "" });
+  const [wa, setWa]             = React.useState({ instance: "", token: "" });
+
+  function updateClinic(k, v)   { setClinic(p => ({ ...p, [k]: v })); }
+  function updateSchedule(k, v) { setSchedule(p => ({ ...p, [k]: v })); }
+  function updateWa(k, v)       { setWa(p => ({ ...p, [k]: v })); }
+
+  async function finish() {
+    setSaving(true);
+    try {
+      await fetch(`${API}/api/clinic`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name:    clinic.name,
+          phone:   clinic.phone,
+          address: clinic.address,
+          hours:   schedule.hours,
+          prices:  schedule.prices,
+        })
+      });
+    } catch (e) {
+      console.log("API non disponible, config sauvegardée localement");
+    }
+    localStorage.setItem("sc_onboarded", "true");
+    localStorage.setItem("sc_clinic", JSON.stringify({ ...clinic, ...schedule, ...wa }));
+    setSaving(false);
+    window.location.href = "index.html";
+  }
+
+  const screens = [
+    <StepWelcome  onNext={() => setStep(1)} />,
+    <StepClinic   data={clinic}   onChange={updateClinic}   onNext={() => setStep(2)} onBack={() => setStep(0)} />,
+    <StepSchedule data={schedule} onChange={updateSchedule} onNext={() => setStep(3)} onBack={() => setStep(1)} />,
+    <StepWhatsapp data={wa}       onChange={updateWa}       onNext={() => setStep(4)} onBack={() => setStep(2)} />,
+    <StepTour     onNext={() => setStep(5)} onBack={() => setStep(3)} />,
+    <StepDone     onFinish={finish} saving={saving} />,
+  ];
+
+  return (
+    <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 16px 40px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 10,
+          background: `linear-gradient(135deg, ${G2}, ${G})`,
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18
+        }}>🏥</div>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>SmartClinique</div>
+        <div style={{ marginLeft: "auto", fontSize: 12, color: "#9ca3af" }}>
+          {step + 1} / {STEPS.length}
+        </div>
+      </div>
+
+      {step > 0 && <ProgressBar current={step - 1} total={STEPS.length - 1} />}
+
+      {screens[step]}
+    </div>
+  );
+}
+
+ReactDOM.render(<Onboarding />, document.getElementById("root"));
+</script>
+</body>
+  </html>
+  
