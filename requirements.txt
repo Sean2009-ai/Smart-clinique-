@@ -1,4 +1,5 @@
 flask
-twilio
+flask-cors
 google-generativeai
+requests
 gunicorn
