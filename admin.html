@@ -13,50 +13,247 @@
 <div id="root"></div>
 <script type="text/babel">
 
-const CLINICS = [
-  {id:1, name:"Clinique Sainte-Marie", plan:"Premium", status:"actif", phone:"+225 07 00 00 00", messages:342, revenue:75000, joined:"01 Jan 2026"},
-  {id:2, name:"Maternité Espoir", plan:"Pro", status:"actif", phone:"+226 70 11 22 33", messages:218, revenue:50000, joined:"15 Fév 2026"},
-  {id:3, name:"Clinique Bien-Être", plan:"Starter", status:"actif", phone:"+225 05 33 44 55", messages:89, revenue:25000, joined:"01 Mar 2026"},
-  {id:4, name:"Centre Médical Lumière", plan:"Pro", status:"bloqué", phone:"+225 07 66 77 88", messages:156, revenue:0, joined:"10 Mar 2026"},
-  {id:5, name:"Maternité La Grâce", plan:"Premium", status:"actif", phone:"+226 65 99 00 11", messages:401, revenue:75000, joined:"20 Avr 2026"},
-];
+const API = "https://smart-clinique-tm2k.onrender.com";
+const G   = "#7c3aed";
 
-const MESSAGES = {
-  1: [{from:"admin",text:"Bonjour, votre renouvellement arrive dans 3 jours.",date:"29 Mai"},{from:"clinic",text:"Merci pour le rappel !",date:"29 Mai"}],
-  2: [{from:"admin",text:"Bienvenue sur SmartClinique !",date:"15 Fév"}],
-  3: [],
-  4: [{from:"admin",text:"Votre compte a été suspendu pour non-paiement.",date:"28 Mai"}],
-  5: [],
-};
+function Spinner() {
+  return <div style={{textAlign:"center",padding:40,color:"#9ca3af"}}>⏳ Chargement...</div>;
+}
 
+function ApiError() {
+  return (
+    <div style={{background:"#1f0d0d",borderRadius:12,padding:16,color:"#f87171",fontSize:13,textAlign:"center"}}>
+      ⚠️ Impossible de contacter le serveur.<br/>
+      <span style={{color:"#9ca3af"}}>Vérifiez que le backend Render est actif.</span>
+    </div>
+  );
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────
+function Dashboard() {
+  const [stats, setStats]   = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError]   = React.useState(false);
+
+  React.useEffect(() => {
+    fetch(API + "/api/stats")
+      .then(r => r.json())
+      .then(d => { setStats(d); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }, []);
+
+  if (loading) return <Spinner />;
+  if (error)   return <ApiError />;
+
+  const cards = [
+    { label: "Patients total",  value: stats.total_patients,     color: "#10b981", icon: "👥" },
+    { label: "RDV total",       value: stats.total_appointments, color: "#3b82f6", icon: "📅" },
+    { label: "Confirmés",       value: stats.confirmed,          color: "#f59e0b", icon: "✅" },
+    { label: "Conversations",   value: stats.conversations,      color: "#7c3aed", icon: "💬" },
+  ];
+
+  return (
+    <div>
+      <h2 style={{margin:"0 0 16px",fontSize:20}}>Vue globale</h2>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
+        {cards.map((s,i) => (
+          <div key={i} style={{background:"#1a1a1a",borderRadius:12,padding:16,borderTop:`3px solid ${s.color}`}}>
+            <div style={{fontSize:20,marginBottom:6}}>{s.icon}</div>
+            <div style={{fontSize:11,color:"#9ca3af",marginBottom:4}}>{s.label}</div>
+            <div style={{fontSize:26,fontWeight:700,color:s.color}}>{s.value ?? 0}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── CLINIQUES ─────────────────────────────────────────────
+function Clinics() {
+  const [clinic, setClinic] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError]   = React.useState(false);
+  const [editing, setEditing] = React.useState(false);
+  const [form, setForm]     = React.useState({});
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved]   = React.useState(false);
+
+  React.useEffect(() => {
+    fetch(API + "/api/clinic")
+      .then(r => r.json())
+      .then(d => { setClinic(d); setForm(d); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }, []);
+
+  async function save() {
+    setSaving(true);
+    await fetch(API + "/api/clinic", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form)
+    });
+    setClinic(form);
+    setSaving(false);
+    setSaved(true);
+    setEditing(false);
+    setTimeout(() => setSaved(false), 3000);
+  }
+
+  if (loading) return <Spinner />;
+  if (error)   return <ApiError />;
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <h2 style={{margin:0,fontSize:20}}>Clinique</h2>
+        <button onClick={() => setEditing(!editing)} style={{
+          background: editing ? "#1a1a1a" : G, border:"none", borderRadius:10,
+          padding:"8px 16px", color: editing ? "#9ca3af" : "#fff",
+          cursor:"pointer", fontWeight:600, fontSize:13, fontFamily:"'DM Sans',sans-serif"
+        }}>
+          {editing ? "Annuler" : "✏️ Modifier"}
+        </button>
+      </div>
+
+      <div style={{background:"#1a1a1a",borderRadius:14,padding:16}}>
+        {[
+          {key:"name",    label:"Nom de la clinique"},
+          {key:"phone",   label:"Téléphone"},
+          {key:"address", label:"Adresse"},
+          {key:"hours",   label:"Horaires"},
+          {key:"prices",  label:"Tarifs"},
+        ].map(f => (
+          <div key={f.key} style={{marginBottom:14}}>
+            <div style={{fontSize:12,color:"#9ca3af",marginBottom:5}}>{f.label}</div>
+            {editing ? (
+              <input value={form[f.key] || ""} onChange={e => setForm(p => ({...p,[f.key]:e.target.value}))}
+                style={{width:"100%",background:"#0a0a0a",border:"1px solid #333",borderRadius:8,padding:"10px",color:"#fff",fontSize:14,boxSizing:"border-box",outline:"none",fontFamily:"'DM Sans',sans-serif"}}
+              />
+            ) : (
+              <div style={{fontSize:14,color:"#d1d5db",padding:"10px",background:"#0a0a0a",borderRadius:8}}>
+                {clinic[f.key] || <span style={{color:"#555"}}>Non renseigné</span>}
+              </div>
+            )}
+          </div>
+        ))}
+
+        {saved && (
+          <div style={{background:"#1e1b4b",borderRadius:10,padding:10,color:"#a5b4fc",fontSize:13,marginBottom:12,textAlign:"center"}}>
+            ✅ Modifications sauvegardées !
+          </div>
+        )}
+
+        {editing && (
+          <button onClick={save} disabled={saving} style={{
+            width:"100%",background:G,border:"none",borderRadius:10,padding:"12px",
+            color:"#fff",fontWeight:700,cursor:"pointer",fontSize:14,fontFamily:"'DM Sans',sans-serif"
+          }}>
+            {saving ? "⏳ Sauvegarde..." : "💾 Sauvegarder"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── RENDEZ-VOUS ───────────────────────────────────────────
+function Appointments() {
+  const [apts, setApts]     = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError]   = React.useState(false);
+
+  function load() {
+    setLoading(true);
+    fetch(API + "/api/appointments")
+      .then(r => r.json())
+      .then(d => { setApts(d); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }
+
+  React.useEffect(load, []);
+
+  async function updateStatus(id, status) {
+    await fetch(`${API}/api/appointments/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status })
+    });
+    load();
+  }
+
+  async function deleteApt(id) {
+    await fetch(`${API}/api/appointments/${id}`, { method: "DELETE" });
+    load();
+  }
+
+  if (loading) return <Spinner />;
+  if (error)   return <ApiError />;
+
+  return (
+    <div>
+      <h2 style={{margin:"0 0 16px",fontSize:20}}>Rendez-vous</h2>
+      {apts.length === 0 ? (
+        <div style={{textAlign:"center",padding:40,color:"#9ca3af",fontSize:14}}>
+          Aucun rendez-vous enregistré
+        </div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {apts.map(a => (
+            <div key={a.id} style={{background:"#1a1a1a",borderRadius:12,padding:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:15}}>{a.name}</div>
+                  <div style={{fontSize:12,color:"#9ca3af",marginTop:2}}>📞 {a.phone}</div>
+                  <div style={{fontSize:12,color:"#9ca3af"}}>{a.type}</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontWeight:600,color:"#a5b4fc",fontSize:13}}>{a.date}</div>
+                  <div style={{color:"#9ca3af",fontSize:12}}>{a.time}</div>
+                  <span style={{
+                    background: a.status==="confirmé"?"#064e3b":"#431407",
+                    color: a.status==="confirmé"?"#34d399":"#fb923c",
+                    borderRadius:20,padding:"2px 8px",fontSize:11,fontWeight:600
+                  }}>{a.status}</span>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                {a.status !== "confirmé" && (
+                  <button onClick={() => updateStatus(a.id, "confirmé")} style={{
+                    flex:1,background:"#064e3b",border:"none",borderRadius:8,padding:"7px",
+                    color:"#34d399",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"'DM Sans',sans-serif"
+                  }}>✅ Confirmer</button>
+                )}
+                <button onClick={() => deleteApt(a.id)} style={{
+                  flex:1,background:"#1f0d0d",border:"none",borderRadius:8,padding:"7px",
+                  color:"#f87171",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"'DM Sans',sans-serif"
+                }}>🗑 Supprimer</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── APP PRINCIPALE ────────────────────────────────────────
 function Admin() {
   const [tab, setTab] = React.useState("dashboard");
-  const [clinics, setClinics] = React.useState(CLINICS);
-  const [msgs, setMsgs] = React.useState(MESSAGES);
-  const [selected, setSelected] = React.useState(null);
-  const [newMsg, setNewMsg] = React.useState("");
 
-  const active = clinics.filter(c=>c.status==="actif").length;
-  const blocked = clinics.filter(c=>c.status==="bloqué").length;
-  const revenue = clinics.reduce((s,c)=>s+c.revenue,0);
-  const totalMsgs = clinics.reduce((s,c)=>s+c.messages,0);
+  const tabs = [
+    {id:"dashboard",    icon:"📊", label:"Stats"},
+    {id:"clinics",      icon:"🏥", label:"Clinique"},
+    {id:"appointments", icon:"📅", label:"RDV"},
+  ];
 
-  function toggleBlock(id) {
-    setClinics(prev=>prev.map(c=>c.id===id?{...c,status:c.status==="actif"?"bloqué":"actif",revenue:c.status==="actif"?0:c.revenue}:c));
-  }
-
-  function sendMsg() {
-    if (!newMsg.trim() || !selected) return;
-    setMsgs(prev=>({...prev,[selected]:[...(prev[selected]||[]),{from:"admin",text:newMsg.trim(),date:"Aujourd'hui"}]}));
-    setNewMsg("");
-  }
-
-  const G = "#7c3aed";
-  const tabs = [{id:"dashboard",icon:"📊",label:"Stats"},{id:"clinics",icon:"🏥",label:"Cliniques"},{id:"messages",icon:"💬",label:"Messages"}];
+  const screens = {
+    dashboard:    <Dashboard />,
+    clinics:      <Clinics />,
+    appointments: <Appointments />,
+  };
 
   return (
     <div style={{display:"flex",flexDirection:"column",minHeight:"100vh"}}>
-      {/* Header */}
       <div style={{background:"linear-gradient(135deg,#4c1d95,#7c3aed)",padding:"14px 20px",display:"flex",alignItems:"center",gap:12}}>
         <div style={{width:36,height:36,background:"rgba(255,255,255,0.2)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>⚡</div>
         <div>
@@ -68,117 +265,18 @@ function Admin() {
         </div>
       </div>
 
-      {/* Content */}
       <div style={{flex:1,padding:16,overflowY:"auto"}}>
-
-        {tab==="dashboard" && (
-          <div>
-            <h2 style={{margin:"0 0 16px",fontSize:20}}>Vue globale</h2>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
-              {[
-                {label:"Cliniques actives",value:active,color:"#10b981",icon:"🏥"},
-                {label:"Cliniques bloquées",value:blocked,color:"#ef4444",icon:"🚫"},
-                {label:"Revenus ce mois",value:revenue.toLocaleString()+" FCFA",color:"#f59e0b",icon:"💰"},
-                {label:"Messages totaux",value:totalMsgs,color:"#3b82f6",icon:"💬"},
-              ].map((s,i)=>(
-                <div key={i} style={{background:"#1a1a1a",borderRadius:12,padding:16,borderTop:`3px solid ${s.color}`}}>
-                  <div style={{fontSize:20,marginBottom:6}}>{s.icon}</div>
-                  <div style={{fontSize:11,color:"#9ca3af",marginBottom:4}}>{s.label}</div>
-                  <div style={{fontSize:s.value.toString().length>8?16:22,fontWeight:700,color:s.color}}>{s.value}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{background:"#1a1a1a",borderRadius:14,padding:16}}>
-              <h3 style={{margin:"0 0 12px",fontSize:15,color:"#9ca3af"}}>📋 Résumé des cliniques</h3>
-              {clinics.map(c=>(
-                <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid #222"}}>
-                  <div>
-                    <div style={{fontWeight:600,fontSize:14}}>{c.name}</div>
-                    <div style={{fontSize:12,color:"#9ca3af"}}>{c.plan} · {c.messages} msgs</div>
-                  </div>
-                  <span style={{background:c.status==="actif"?"#064e3b":"#450a0a",color:c.status==="actif"?"#34d399":"#f87171",borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:600}}>
-                    {c.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {tab==="clinics" && (
-          <div>
-            <h2 style={{margin:"0 0 16px",fontSize:20}}>Gestion des cliniques</h2>
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {clinics.map(c=>(
-                <div key={c.id} style={{background:"#1a1a1a",borderRadius:14,padding:14}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                    <div>
-                      <div style={{fontWeight:700,fontSize:15}}>{c.name}</div>
-                      <div style={{fontSize:12,color:"#9ca3af",marginTop:2}}>📞 {c.phone}</div>
-                      <div style={{fontSize:12,color:"#9ca3af"}}>Depuis le {c.joined}</div>
-                    </div>
-                    <span style={{background:c.plan==="Premium"?"#1e1b4b":c.plan==="Pro"?"#1e3a5f":"#1a2e1a",color:c.plan==="Premium"?"#a5b4fc":c.plan==="Pro"?"#60a5fa":"#34d399",borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700}}>
-                      {c.plan}
-                    </span>
-                  </div>
-                  <div style={{display:"flex",gap:8,marginTop:10}}>
-                    <button onClick={()=>toggleBlock(c.id)} style={{flex:1,background:c.status==="actif"?"#450a0a":"#064e3b",border:"none",borderRadius:8,padding:"8px",color:c.status==="actif"?"#f87171":"#34d399",cursor:"pointer",fontWeight:600,fontSize:13}}>
-                      {c.status==="actif"?"🚫 Bloquer":"✅ Débloquer"}
-                    </button>
-                    <button onClick={()=>{setSelected(c.id);setTab("messages");}} style={{flex:1,background:"#1e1b4b",border:"none",borderRadius:8,padding:"8px",color:"#a5b4fc",cursor:"pointer",fontWeight:600,fontSize:13}}>
-                      💬 Écrire
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {tab==="messages" && (
-          <div>
-            <h2 style={{margin:"0 0 16px",fontSize:20}}>Messagerie</h2>
-            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-              {clinics.map(c=>(
-                <button key={c.id} onClick={()=>setSelected(c.id)} style={{background:selected===c.id?"#1e1b4b":"#1a1a1a",border:selected===c.id?"1px solid #7c3aed":"1px solid #222",borderRadius:10,padding:"10px 14px",color:"#fff",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{fontWeight:600,fontSize:14}}>{c.name}</div>
-                    <div style={{fontSize:12,color:"#9ca3af"}}>{c.plan}</div>
-                  </div>
-                  {(msgs[c.id]||[]).length > 0 && <span style={{background:"#7c3aed",borderRadius:"50%",width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11}}>{(msgs[c.id]||[]).length}</span>}
-                </button>
-              ))}
-            </div>
-
-            {selected && (
-              <div style={{background:"#1a1a1a",borderRadius:14,padding:14}}>
-                <div style={{fontWeight:700,marginBottom:12,color:"#a5b4fc"}}>💬 {clinics.find(c=>c.id===selected)?.name}</div>
-                <div style={{maxHeight:200,overflowY:"auto",display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
-                  {(msgs[selected]||[]).map((m,i)=>(
-                    <div key={i} style={{display:"flex",justifyContent:m.from==="admin"?"flex-end":"flex-start"}}>
-                      <div style={{maxWidth:"80%",background:m.from==="admin"?"linear-gradient(135deg,#4c1d95,#7c3aed)":"#222",borderRadius:12,padding:"8px 12px",fontSize:13}}>
-                        {m.text}
-                        <div style={{fontSize:10,opacity:.6,marginTop:3}}>{m.date}</div>
-                      </div>
-                    </div>
-                  ))}
-                  {(msgs[selected]||[]).length===0 && <div style={{color:"#9ca3af",fontSize:13,textAlign:"center"}}>Aucun message — commencez la conversation !</div>}
-                </div>
-                <div style={{display:"flex",gap:8}}>
-                  <input value={newMsg} onChange={e=>setNewMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMsg()} placeholder="Écrire à la clinique..." style={{flex:1,background:"#0a0a0a",border:"1px solid #333",borderRadius:20,padding:"8px 14px",color:"#fff",fontSize:13,outline:"none"}}/>
-                  <button onClick={sendMsg} style={{background:G,border:"none",borderRadius:"50%",width:38,height:38,color:"#fff",cursor:"pointer",fontSize:16}}>➤</button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {screens[tab]}
       </div>
 
-      {/* Bottom nav */}
       <div style={{background:"#111",borderTop:"1px solid #222",padding:"8px 0",display:"flex",justifyContent:"space-around"}}>
-        {tabs.map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"4px 12px",color:tab===t.id?G:"#6b7280",fontSize:11,fontWeight:tab===t.id?700:400}}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            background:"none",border:"none",cursor:"pointer",
+            display:"flex",flexDirection:"column",alignItems:"center",
+            gap:3,padding:"4px 12px",color:tab===t.id?G:"#6b7280",
+            fontSize:11,fontWeight:tab===t.id?700:400,fontFamily:"'DM Sans',sans-serif"
+          }}>
             <span style={{fontSize:20}}>{t.icon}</span>
             {t.label}
           </button>
