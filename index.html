@@ -11,115 +11,279 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #050f0a; font-family: 'DM Sans', sans-serif; color: #fff; overflow-x: hidden; }
+
+    /* ── Logo S animé ── */
+    @keyframes pulse-ring {
+      0%   { transform: scale(0.9); opacity: .6; }
+      50%  { transform: scale(1.1); opacity: .2; }
+      100% { transform: scale(0.9); opacity: .6; }
+    }
+    @keyframes rotate-border {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-6px); }
+    }
+    @keyframes shimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes scale-in {
+      from { opacity: 0; transform: scale(0.8); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes dot-bounce {
+      0%, 80%, 100% { transform: scale(0); opacity: 0; }
+      40%            { transform: scale(1); opacity: 1; }
+    }
+    @keyframes glow-pulse {
+      0%, 100% { box-shadow: 0 0 10px #05966940; }
+      50%       { box-shadow: 0 0 30px #05966980, 0 0 60px #05966930; }
+    }
+    @keyframes stat-count {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo-wrapper {
+      position: relative;
+      width: 48px; height: 48px;
+      animation: float 3s ease-in-out infinite;
+    }
+    .logo-ring {
+      position: absolute; inset: -6px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: #059669;
+      border-right-color: #059669;
+      animation: rotate-border 2s linear infinite;
+    }
+    .logo-core {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, #065f46, #059669);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      animation: glow-pulse 2s ease-in-out infinite;
+    }
+    .logo-s {
+      font-size: 26px; font-weight: 800;
+      background: linear-gradient(135deg, #fff, #a7f3d0, #fff);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 2.5s linear infinite;
+    }
+
+    /* ── Cards animées ── */
+    .stat-card {
+      animation: scale-in .4s ease both;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .stat-card:active { transform: scale(0.96); }
+
+    /* ── Messages chat ── */
+    .msg-bot  { animation: slide-up .3s ease both; }
+    .msg-user { animation: slide-up .3s ease both; }
+
+    /* ── Nav active indicator ── */
+    .nav-btn { transition: color .2s; position: relative; }
+    .nav-btn.active::after {
+      content: '';
+      position: absolute; bottom: -8px; left: 50%;
+      transform: translateX(-50%);
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: #059669;
+    }
+
+    /* ── Typing dots ── */
+    .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #9ca3af; margin: 0 2px; }
+    .dot:nth-child(1) { animation: dot-bounce 1.4s ease-in-out .0s infinite; }
+    .dot:nth-child(2) { animation: dot-bounce 1.4s ease-in-out .2s infinite; }
+    .dot:nth-child(3) { animation: dot-bounce 1.4s ease-in-out .4s infinite; }
+
+    /* ── Page transitions ── */
+    .page { animation: fade-in .25s ease; }
+
+    /* ── Inputs ── */
+    input, select, textarea {
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input:focus, select:focus {
+      border-color: #059669 !important;
+      box-shadow: 0 0 0 3px #05966920;
+      outline: none;
+    }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      background: linear-gradient(135deg, #065f46, #059669);
+      border: none; border-radius: 12px; padding: 13px;
+      color: #fff; font-weight: 700; font-size: 15px;
+      cursor: pointer; width: 100%;
+      font-family: 'DM Sans', sans-serif;
+      transition: transform .15s, box-shadow .15s;
+      box-shadow: 0 4px 15px #05966940;
+    }
+    .btn-primary:active { transform: scale(0.97); box-shadow: none; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0a0a0a; }
+    ::-webkit-scrollbar-thumb { background: #1a2e1a; border-radius: 2px; }
+
+    /* ── Status badge ── */
+    .badge-active { background: #0d2e1f; color: #34d399; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 700; }
+    .badge-pending { background: #431407; color: #fb923c; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 700; }
+  </style>
 </head>
-<body style="margin:0;background:#0a0a0a;font-family:'DM Sans',sans-serif">
+<body>
 <div id="root"></div>
 <script type="text/babel">
 
 const API = "http://localhost:5000";
 const G   = "#059669";
 const G2  = "#065f46";
+const GEMINI_KEY = "AQ.Ab8RN6L0YtMdxHjvgbwWdY97zMQ44zi4IdQnxsqOa1Q27j8NsQ";
 
-// ─── Hook générique fetch ──────────────────────────────────
-function useApi(endpoint, deps = []) {
-  const [data, setData]       = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError]     = React.useState(null);
-
-  React.useEffect(() => {
-    setLoading(true);
-    fetch(API + endpoint)
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
-      .catch(() => { setError(true); setLoading(false); });
-  }, deps);
-
-  return { data, loading, error, reload: () => setLoading(true) };
+// ─── Logo SVG ───────────────────────────────────────────
+function Logo({ size = 48 }) {
+  return (
+    <div className="logo-wrapper" style={{ width: size, height: size }}>
+      <div className="logo-ring" style={{ inset: -size * 0.12 }} />
+      <div className="logo-core" style={{ width: size, height: size, borderRadius: size * 0.29 }}>
+        <span className="logo-s" style={{ fontSize: size * 0.54 }}>S</span>
+      </div>
+    </div>
+  );
 }
 
-// ─── Composants UI ────────────────────────────────────────
+// ─── Composants UI ──────────────────────────────────────
 function Spinner() {
-  return <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>⏳ Chargement...</div>;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: 48, gap: 16 }}>
+      <div style={{ width: 36, height: 36, border: "3px solid #1a1a1a", borderTop: `3px solid ${G}`, borderRadius: "50%", animation: "rotate-border 1s linear infinite" }} />
+      <span style={{ color: "#9ca3af", fontSize: 13 }}>Chargement...</span>
+    </div>
+  );
 }
 
 function ApiError() {
   return (
-    <div style={{ background: "#1f0d0d", borderRadius: 12, padding: 16, color: "#f87171", fontSize: 13, textAlign: "center" }}>
-      ⚠️ Impossible de contacter le serveur local.<br />
-      <span style={{ color: "#9ca3af" }}>Assurez-vous que app.py est démarré.</span>
+    <div style={{ background: "#1f0d0d", borderRadius: 14, padding: 16, color: "#f87171", fontSize: 13, textAlign: "center", animation: "scale-in .3s ease" }}>
+      <div style={{ fontSize: 28, marginBottom: 8 }}>⚠️</div>
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>Serveur non disponible</div>
+      <div style={{ color: "#9ca3af" }}>Assurez-vous que app.py est démarré</div>
     </div>
   );
 }
 
-// ─── DASHBOARD ────────────────────────────────────────────
+function StatCard({ label, value, color, icon, delay = 0 }) {
+  return (
+    <div className="stat-card" style={{ background: "#111", borderRadius: 14, padding: 16, borderTop: `3px solid ${color}`, animationDelay: `${delay}s` }}>
+      <div style={{ fontSize: 22, marginBottom: 8 }}>{icon}</div>
+      <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4, textTransform: "uppercase", letterSpacing: ".5px" }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 800, color, animation: "stat-count .5s ease both", animationDelay: `${delay + .1}s` }}>{value ?? 0}</div>
+    </div>
+  );
+}
+
+// ─── DASHBOARD ──────────────────────────────────────────
 function Dashboard() {
-  const { data: stats, loading, error } = useApi("/api/stats");
-  const { data: clinic } = useApi("/api/clinic");
+  const [stats, setStats]   = React.useState(null);
+  const [clinic, setClinic] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError]   = React.useState(false);
+
+  React.useEffect(() => {
+    Promise.all([
+      fetch(API + "/api/stats").then(r => r.json()),
+      fetch(API + "/api/clinic").then(r => r.json()),
+    ]).then(([s, c]) => { setStats(s); setClinic(c); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }, []);
 
   if (loading) return <Spinner />;
   if (error)   return <ApiError />;
 
-  const cards = [
-    { label: "Conversations",     value: stats.conversations,      color: "#10b981", icon: "💬" },
-    { label: "Patients total",    value: stats.total_patients,     color: "#3b82f6", icon: "👥" },
-    { label: "RDV aujourd'hui",   value: stats.total_appointments, color: "#f59e0b", icon: "📅" },
-    { label: "En attente",        value: stats.pending,            color: "#ef4444", icon: "⏳" },
-  ];
-
   return (
-    <div>
+    <div className="page">
       {clinic && (
-        <div style={{ background: `linear-gradient(135deg, ${G2}, ${G})`, borderRadius: 14, padding: 16, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, opacity: .8, marginBottom: 4 }}>Clinique active</div>
-          <div style={{ fontWeight: 700, fontSize: 17 }}>{clinic.name}</div>
-          <div style={{ fontSize: 12, opacity: .8, marginTop: 2 }}>{clinic.phone}</div>
+        <div style={{
+          background: "linear-gradient(135deg, #0a2318, #0d3321)",
+          borderRadius: 16, padding: 16, marginBottom: 20,
+          border: "1px solid #1a3d27",
+          animation: "slide-up .4s ease"
+        }}>
+          <div style={{ fontSize: 11, color: "#6ee7b7", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 6 }}>Clinique active</div>
+          <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 2 }}>{clinic.name}</div>
+          <div style={{ fontSize: 13, color: "#9ca3af" }}>{clinic.phone}</div>
+          <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>{clinic.address}</div>
         </div>
       )}
-      <h2 style={{ margin: "0 0 14px", fontSize: 18 }}>Tableau de bord</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-        {cards.map((s, i) => (
-          <div key={i} style={{ background: "#1a1a1a", borderRadius: 12, padding: 14, borderTop: `3px solid ${s.color}` }}>
-            <div style={{ fontSize: 18, marginBottom: 6 }}>{s.icon}</div>
-            <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>{s.label}</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: s.color }}>{s.value ?? 0}</div>
+
+      <div style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12 }}>Vue d'ensemble</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+        <StatCard label="Conversations" value={stats.conversations}      color="#10b981" icon="💬" delay={0}   />
+        <StatCard label="Patients"      value={stats.total_patients}     color="#3b82f6" icon="👥" delay={.05} />
+        <StatCard label="RDV total"     value={stats.total_appointments} color="#f59e0b" icon="📅" delay={.1}  />
+        <StatCard label="En attente"    value={stats.pending}            color="#ef4444" icon="⏳" delay={.15} />
+      </div>
+
+      <div style={{ background: "#111", borderRadius: 14, padding: 16, animation: "slide-up .5s ease .2s both" }}>
+        <div style={{ fontSize: 12, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 12 }}>Résumé</div>
+        {[
+          { label: "RDV confirmés",    value: stats.confirmed,         color: G },
+          { label: "RDV en attente",   value: stats.pending,           color: "#f59e0b" },
+          { label: "Médecins dispos",  value: stats.available_doctors, color: "#3b82f6" },
+        ].map((r, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: i < 2 ? "1px solid #1a1a1a" : "none" }}>
+            <span style={{ color: "#d1d5db", fontSize: 14 }}>{r.label}</span>
+            <span style={{ color: r.color, fontWeight: 700, fontSize: 16 }}>{r.value ?? 0}</span>
           </div>
         ))}
-      </div>
-      <div style={{ background: "#1a1a1a", borderRadius: 12, padding: 14 }}>
-        <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 8 }}>📊 Résumé</div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #222" }}>
-          <span style={{ color: "#d1d5db", fontSize: 13 }}>RDV confirmés</span>
-          <span style={{ color: G, fontWeight: 700 }}>{stats.confirmed ?? 0}</span>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}>
-          <span style={{ color: "#d1d5db", fontSize: 13 }}>RDV en attente</span>
-          <span style={{ color: "#f59e0b", fontWeight: 700 }}>{stats.pending ?? 0}</span>
-        </div>
       </div>
     </div>
   );
 }
 
-// ─── CONVERSATIONS ─────────────────────────────────────────
+// ─── CONVERSATIONS ──────────────────────────────────────
 function Conversations() {
-  const [input, setInput]     = React.useState("");
-  const [messages, setMessages] = React.useState([
-    { from: "bot", text: "👋 Bonjour ! Je suis la secrétaire virtuelle. Comment puis-je vous aider ?" }
-  ]);
-  const [loading, setLoading] = React.useState(false);
   const clinic = JSON.parse(localStorage.getItem("sc_clinic") || "{}");
+  const [messages, setMessages] = React.useState([
+    { from: "bot", text: `👋 Bonjour ! Je suis la secrétaire virtuelle de ${clinic.name || "la clinique"}. Comment puis-je vous aider ?` }
+  ]);
+  const [input, setInput]   = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const bottomRef = React.useRef(null);
 
-  const GEMINI_KEY = "AQ.Ab8RN6L0YtMdxHjvgbwWdY97zMQ44zi4IdQnxsqOa1Q27j8NsQ";
+  React.useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const SYSTEM_PROMPT = `Tu es la secrétaire virtuelle de ${clinic.name || "la clinique"}.
 Tu gères UNIQUEMENT : les rendez-vous, les horaires, les tarifs et les directions.
 Tu ne donnes JAMAIS de conseils médicaux.
-Horaires: ${clinic.hours || "non renseignés"}
-Téléphone: ${clinic.phone || "non renseigné"}
-Adresse: ${clinic.address || "non renseignée"}
-Tarifs: ${clinic.prices || "non renseignés"}
-Réponds en français, de façon chaleureuse et professionnelle. Max 3 phrases.`;
+Téléphone : ${clinic.phone || "non renseigné"}
+Adresse : ${clinic.address || "non renseignée"}
+Horaires : ${clinic.hours || "non renseignés"}
+Tarifs : ${clinic.prices || "non renseignés"}
+Détecte automatiquement la langue du patient et réponds TOUJOURS dans sa langue. Max 3 phrases.`;
 
   async function sendMessage() {
     if (!input.trim() || loading) return;
@@ -149,42 +313,53 @@ Réponds en français, de façon chaleureuse et professionnelle. Max 3 phrases.`
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "72vh" }}>
-      <h2 style={{ margin: "0 0 14px", fontSize: 18 }}>Conversations</h2>
-      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+    <div className="page" style={{ display: "flex", flexDirection: "column", height: "74vh" }}>
+      <div style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12 }}>Secrétaire IA</div>
+      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, marginBottom: 12, paddingRight: 4 }}>
         {messages.map((m, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: m.from === "user" ? "flex-end" : "flex-start" }}>
+          <div key={i} className={m.from === "user" ? "msg-user" : "msg-bot"} style={{ display: "flex", justifyContent: m.from === "user" ? "flex-end" : "flex-start", animationDelay: `${i * .05}s` }}>
+            {m.from === "bot" && (
+              <div style={{ width: 28, height: 28, background: "linear-gradient(135deg,#065f46,#059669)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, marginRight: 8, flexShrink: 0, alignSelf: "flex-end" }}>S</div>
+            )}
             <div style={{
-              maxWidth: "80%",
-              background: m.from === "user" ? `linear-gradient(135deg, ${G2}, ${G})` : "#1a1a1a",
+              maxWidth: "75%",
+              background: m.from === "user" ? `linear-gradient(135deg, ${G2}, ${G})` : "#111",
               borderRadius: m.from === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-              padding: "10px 14px", fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-wrap"
+              padding: "10px 14px", fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap",
+              boxShadow: m.from === "user" ? "0 4px 15px #05966930" : "none"
             }}>
               {m.text}
             </div>
           </div>
         ))}
         {loading && (
-          <div style={{ background: "#1a1a1a", borderRadius: 12, padding: "10px 14px", width: "fit-content", color: "#9ca3af", fontSize: 13 }}>
-            ✍️ En train d'écrire...
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 28, height: 28, background: "linear-gradient(135deg,#065f46,#059669)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>S</div>
+            <div style={{ background: "#111", borderRadius: "18px 18px 18px 4px", padding: "12px 16px", display: "flex", alignItems: "center", gap: 2 }}>
+              <span className="dot" /><span className="dot" /><span className="dot" />
+            </div>
           </div>
         )}
+        <div ref={bottomRef} />
       </div>
       <div style={{ display: "flex", gap: 8 }}>
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && sendMessage()}
+        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()}
           placeholder="Écrivez un message..."
-          style={{ flex: 1, background: "#1a1a1a", border: "1px solid #333", borderRadius: 24, padding: "10px 16px", color: "#fff", fontSize: 14, outline: "none", fontFamily: "'DM Sans', sans-serif" }}
+          style={{ flex: 1, background: "#111", border: "1.5px solid #1a1a1a", borderRadius: 24, padding: "11px 18px", color: "#fff", fontSize: 14 }}
         />
-        <button onClick={sendMessage} style={{ width: 44, height: 44, borderRadius: "50%", background: G, border: "none", cursor: "pointer", fontSize: 18, color: "#fff" }}>➤</button>
+        <button onClick={sendMessage} style={{
+          width: 46, height: 46, borderRadius: "50%",
+          background: `linear-gradient(135deg, ${G2}, ${G})`,
+          border: "none", cursor: "pointer", fontSize: 18, color: "#fff",
+          boxShadow: "0 4px 15px #05966940",
+          transition: "transform .15s", flexShrink: 0
+        }}>➤</button>
       </div>
     </div>
   );
 }
 
-// ─── RENDEZ-VOUS ───────────────────────────────────────────
+// ─── RENDEZ-VOUS ────────────────────────────────────────
 function Appointments() {
   const [apts, setApts]       = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -192,25 +367,24 @@ function Appointments() {
   const [showForm, setShowForm] = React.useState(false);
   const [form, setForm]       = React.useState({ name: "", phone: "", type: "Consultation", date: "", time: "" });
   const [saving, setSaving]   = React.useState(false);
+  const [assigned, setAssigned] = React.useState(null);
 
   function load() {
     setLoading(true);
     fetch(API + "/api/appointments")
-      .then(r => r.json())
-      .then(d => { setApts(d); setLoading(false); })
+      .then(r => r.json()).then(d => { setApts(d); setLoading(false); })
       .catch(() => { setError(true); setLoading(false); });
   }
-
   React.useEffect(load, []);
 
   async function addApt() {
     if (!form.name || !form.date) return;
     setSaving(true);
-    await fetch(API + "/api/appointments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form)
+    const res = await fetch(API + "/api/appointments", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form)
     });
+    const data = await res.json();
+    setAssigned(data.doctor_assigned);
     setSaving(false);
     setForm({ name: "", phone: "", type: "Consultation", date: "", time: "" });
     setShowForm(false);
@@ -218,11 +392,7 @@ function Appointments() {
   }
 
   async function updateStatus(id, status) {
-    await fetch(`${API}/api/appointments/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status })
-    });
+    await fetch(`${API}/api/appointments/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
     load();
   }
 
@@ -235,18 +405,31 @@ function Appointments() {
   if (error)   return <ApiError />;
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <h2 style={{ margin: 0, fontSize: 18 }}>Rendez-vous</h2>
-        <button onClick={() => setShowForm(!showForm)} style={{
-          background: G, border: "none", borderRadius: 10, padding: "8px 14px",
-          color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "'DM Sans', sans-serif"
-        }}>+ Nouveau</button>
+    <div className="page">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 18 }}>Rendez-vous</div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>{apts.length} au total</div>
+        </div>
+        <button onClick={() => { setShowForm(!showForm); setAssigned(null); }} style={{
+          background: showForm ? "#1a1a1a" : `linear-gradient(135deg, ${G2}, ${G})`,
+          border: "none", borderRadius: 12, padding: "9px 16px",
+          color: showForm ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13,
+          fontFamily: "'DM Sans', sans-serif", transition: "all .2s"
+        }}>
+          {showForm ? "✕ Fermer" : "+ Nouveau"}
+        </button>
       </div>
 
+      {assigned && (
+        <div style={{ background: "#0d2e1f", borderRadius: 12, padding: 12, marginBottom: 14, color: "#34d399", fontSize: 13, animation: "scale-in .3s ease" }}>
+          👨‍⚕️ Médecin attribué : <strong>{assigned}</strong>
+        </div>
+      )}
+
       {showForm && (
-        <div style={{ background: "#1a1a1a", borderRadius: 14, padding: 14, marginBottom: 14 }}>
-          <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>Nouveau rendez-vous</div>
+        <div style={{ background: "#111", borderRadius: 16, padding: 16, marginBottom: 16, animation: "slide-up .3s ease", border: "1px solid #1a1a1a" }}>
+          <div style={{ fontWeight: 700, marginBottom: 14, fontSize: 15 }}>Nouveau rendez-vous</div>
           {[
             { key: "name",  placeholder: "Nom complet" },
             { key: "phone", placeholder: "Téléphone" },
@@ -255,57 +438,50 @@ function Appointments() {
           ].map(f => (
             <input key={f.key} type={f.type || "text"} placeholder={f.placeholder} value={form[f.key]}
               onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-              style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "10px", color: "#fff", fontSize: 14, marginBottom: 8, boxSizing: "border-box", outline: "none", fontFamily: "'DM Sans', sans-serif" }}
+              style={{ width: "100%", background: "#0a0a0a", border: "1.5px solid #1a1a1a", borderRadius: 10, padding: "11px 14px", color: "#fff", fontSize: 14, marginBottom: 10, display: "block" }}
             />
           ))}
           <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
-            style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "10px", color: "#fff", fontSize: 14, marginBottom: 10, boxSizing: "border-box", fontFamily: "'DM Sans', sans-serif" }}>
+            style={{ width: "100%", background: "#0a0a0a", border: "1.5px solid #1a1a1a", borderRadius: 10, padding: "11px 14px", color: "#fff", fontSize: 14, marginBottom: 14, fontFamily: "'DM Sans', sans-serif" }}>
             {["Consultation", "Consultation prénatale", "Vaccination", "Échographie", "Suivi post-accouchement"].map(t => <option key={t}>{t}</option>)}
           </select>
-          <button onClick={addApt} disabled={saving} style={{
-            width: "100%", background: G, border: "none", borderRadius: 10, padding: "11px",
-            color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 14, fontFamily: "'DM Sans', sans-serif"
-          }}>
-            {saving ? "⏳ Enregistrement..." : "✅ Confirmer"}
+          <button className="btn-primary" onClick={addApt} disabled={saving}>
+            {saving ? "⏳ Attribution en cours..." : "✅ Confirmer le RDV"}
           </button>
         </div>
       )}
 
       {apts.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 40, color: "#9ca3af", fontSize: 14 }}>
+        <div style={{ textAlign: "center", padding: 48, color: "#9ca3af", fontSize: 14 }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>📅</div>
           Aucun rendez-vous pour l'instant
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {apts.map(a => (
-            <div key={a.id} style={{ background: "#1a1a1a", borderRadius: 12, padding: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+          {apts.map((a, i) => (
+            <div key={a.id} style={{ background: "#111", borderRadius: 14, padding: 14, border: "1px solid #1a1a1a", animation: "slide-up .3s ease both", animationDelay: `${i * .05}s` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{a.name}</div>
-                  <div style={{ color: "#9ca3af", fontSize: 12, marginTop: 2 }}>📞 {a.phone}</div>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2 }}>{a.name}</div>
+                  <div style={{ color: "#9ca3af", fontSize: 12 }}>📞 {a.phone}</div>
                   <div style={{ color: "#9ca3af", fontSize: 12 }}>{a.type}</div>
+                  {a.doctor_name && <div style={{ color: "#6ee7b7", fontSize: 12, marginTop: 2 }}>👨‍⚕️ Dr. {a.doctor_name}</div>}
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontWeight: 600, color: G, fontSize: 13 }}>{a.date}</div>
-                  <div style={{ color: "#9ca3af", fontSize: 12 }}>{a.time}</div>
-                  <span style={{
-                    background: a.status === "confirmé" ? "#064e3b" : "#431407",
-                    color: a.status === "confirmé" ? "#34d399" : "#fb923c",
-                    borderRadius: 20, padding: "2px 8px", fontSize: 11, fontWeight: 600
-                  }}>{a.status}</span>
+                  <div style={{ fontWeight: 700, color: G, fontSize: 13 }}>{a.date}</div>
+                  <div style={{ color: "#9ca3af", fontSize: 12, marginBottom: 4 }}>{a.time}</div>
+                  <span className={a.status === "confirmé" ? "badge-active" : "badge-pending"}>{a.status}</span>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 {a.status !== "confirmé" && (
-                  <button onClick={() => updateStatus(a.id, "confirmé")} style={{
-                    flex: 1, background: "#064e3b", border: "none", borderRadius: 8, padding: "7px",
-                    color: "#34d399", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "'DM Sans', sans-serif"
-                  }}>✅ Confirmer</button>
+                  <button onClick={() => updateStatus(a.id, "confirmé")} style={{ flex: 1, background: "#0d2e1f", border: "none", borderRadius: 8, padding: "8px", color: "#34d399", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", transition: "opacity .2s" }}>
+                    ✅ Confirmer
+                  </button>
                 )}
-                <button onClick={() => deleteApt(a.id)} style={{
-                  flex: 1, background: "#1f0d0d", border: "none", borderRadius: 8, padding: "7px",
-                  color: "#f87171", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "'DM Sans', sans-serif"
-                }}>🗑 Supprimer</button>
+                <button onClick={() => deleteApt(a.id)} style={{ flex: 1, background: "#1f0d0d", border: "none", borderRadius: 8, padding: "8px", color: "#f87171", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "'DM Sans', sans-serif" }}>
+                  🗑 Supprimer
+                </button>
               </div>
             </div>
           ))}
@@ -315,40 +491,34 @@ function Appointments() {
   );
 }
 
-// ─── PARAMÈTRES ────────────────────────────────────────────
+// ─── PARAMÈTRES ─────────────────────────────────────────
 function Settings() {
   const [form, setForm]     = React.useState(null);
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved]   = React.useState(false);
 
   React.useEffect(() => {
-    fetch(API + "/api/clinic")
-      .then(r => r.json())
-      .then(d => setForm(d))
+    fetch(API + "/api/clinic").then(r => r.json()).then(d => setForm(d))
       .catch(() => setForm(JSON.parse(localStorage.getItem("sc_clinic") || "{}")));
   }, []);
 
   async function save() {
     setSaving(true);
     try {
-      await fetch(API + "/api/clinic", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
-      });
+      await fetch(API + "/api/clinic", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
     } catch {}
     localStorage.setItem("sc_clinic", JSON.stringify(form));
-    setSaving(false);
-    setSaved(true);
+    setSaving(false); setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   }
 
   if (!form) return <Spinner />;
 
   return (
-    <div>
-      <h2 style={{ margin: "0 0 14px", fontSize: 18 }}>Paramètres</h2>
-      <div style={{ background: "#1a1a1a", borderRadius: 14, padding: 16 }}>
+    <div className="page">
+      <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 4 }}>Paramètres</div>
+      <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 20 }}>Configuration de votre clinique</div>
+      <div style={{ background: "#111", borderRadius: 16, padding: 16, border: "1px solid #1a1a1a" }}>
         {[
           { key: "name",    label: "Nom de la clinique" },
           { key: "phone",   label: "Téléphone" },
@@ -357,34 +527,29 @@ function Settings() {
           { key: "prices",  label: "Tarifs" },
         ].map(f => (
           <div key={f.key} style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 5 }}>{f.label}</div>
+            <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, textTransform: "uppercase", letterSpacing: ".5px" }}>{f.label}</div>
             <input value={form[f.key] || ""} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-              style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "10px", color: "#fff", fontSize: 14, boxSizing: "border-box", outline: "none", fontFamily: "'DM Sans', sans-serif" }}
+              style={{ width: "100%", background: "#0a0a0a", border: "1.5px solid #1a1a1a", borderRadius: 10, padding: "11px 14px", color: "#fff", fontSize: 14 }}
             />
           </div>
         ))}
         {saved && (
-          <div style={{ background: "#0d2e1f", borderRadius: 10, padding: 10, color: "#34d399", fontSize: 13, marginBottom: 12, textAlign: "center" }}>
+          <div style={{ background: "#0d2e1f", borderRadius: 10, padding: 10, color: "#34d399", fontSize: 13, marginBottom: 12, textAlign: "center", animation: "scale-in .3s ease" }}>
             ✅ Paramètres sauvegardés !
           </div>
         )}
-        <button onClick={save} disabled={saving} style={{
-          width: "100%", background: `linear-gradient(135deg, ${G2}, ${G})`, border: "none",
-          borderRadius: 10, padding: "12px", color: "#fff", fontWeight: 700,
-          cursor: "pointer", fontSize: 14, fontFamily: "'DM Sans', sans-serif"
-        }}>
-          {saving ? "⏳ Sauvegarde..." : "💾 Sauvegarder"}
+        <button className="btn-primary" onClick={save} disabled={saving}>
+          {saving ? "⏳ Sauvegarde..." : "💾 Sauvegarder les modifications"}
         </button>
       </div>
     </div>
   );
 }
 
-// ─── APP PRINCIPALE ────────────────────────────────────────
+// ─── APP PRINCIPALE ─────────────────────────────────────
 function App() {
   const [tab, setTab] = React.useState("dashboard");
 
-  // Rediriger vers onboarding si pas encore configuré
   React.useEffect(() => {
     if (!localStorage.getItem("sc_onboarded")) {
       window.location.href = "onboarding.html";
@@ -393,8 +558,8 @@ function App() {
 
   const tabs = [
     { id: "dashboard",    icon: "📊", label: "Dashboard" },
-    { id: "chat",         icon: "💬", label: "Conversations" },
-    { id: "appointments", icon: "📅", label: "Rendez-vous" },
+    { id: "chat",         icon: "💬", label: "Chat IA" },
+    { id: "appointments", icon: "📅", label: "RDV" },
     { id: "settings",     icon: "⚙️", label: "Paramètres" },
   ];
 
@@ -406,16 +571,17 @@ function App() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", color: "#fff" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       {/* Header */}
-      <div style={{ background: `linear-gradient(135deg, ${G2}, ${G})`, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏥</div>
+      <div style={{ background: "linear-gradient(135deg, #030d07, #0a1f10)", padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid #0d2e1f", position: "sticky", top: 0, zIndex: 10 }}>
+        <Logo size={42} />
         <div>
-          <div style={{ fontWeight: 700, fontSize: 16 }}>SmartClinique</div>
-          <div style={{ fontSize: 11, opacity: .8 }}>Secrétaire virtuelle IA</div>
+          <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: "-.3px" }}>SmartClinique</div>
+          <div style={{ fontSize: 11, color: "#6ee7b7", letterSpacing: ".3px" }}>Secrétaire virtuelle IA</div>
         </div>
-        <div style={{ marginLeft: "auto", background: "rgba(255,255,255,0.15)", borderRadius: 20, padding: "4px 12px", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80" }} />IA Active
+        <div style={{ marginLeft: "auto", background: "#0d2e1f", borderRadius: 20, padding: "5px 12px", fontSize: 11, display: "flex", alignItems: "center", gap: 6, border: "1px solid #1a3d27" }}>
+          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399", animation: "glow-pulse 2s infinite" }} />
+          <span style={{ color: "#34d399", fontWeight: 600 }}>IA Active</span>
         </div>
       </div>
 
@@ -424,16 +590,20 @@ function App() {
         {screens[tab]}
       </div>
 
-      {/* Nav */}
-      <div style={{ background: "#111", borderTop: "1px solid #222", padding: "8px 0", display: "flex", justifyContent: "space-around" }}>
+      {/* Bottom Nav */}
+      <div style={{ background: "#080f0a", borderTop: "1px solid #0d2e1f", padding: "6px 0 10px", display: "flex", justifyContent: "space-around", position: "sticky", bottom: 0 }}>
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{
+          <button key={t.id} onClick={() => setTab(t.id)} className={`nav-btn ${tab === t.id ? "active" : ""}`} style={{
             background: "none", border: "none", cursor: "pointer",
             display: "flex", flexDirection: "column", alignItems: "center",
-            gap: 3, padding: "4px 12px", color: tab === t.id ? G : "#6b7280",
-            fontSize: 11, fontWeight: tab === t.id ? 700 : 400, fontFamily: "'DM Sans', sans-serif"
+            gap: 3, padding: "6px 12px",
+            color: tab === t.id ? G : "#4b5563",
+            fontSize: 10, fontWeight: tab === t.id ? 700 : 500,
+            fontFamily: "'DM Sans', sans-serif",
+            transition: "color .2s",
+            textTransform: "uppercase", letterSpacing: ".5px"
           }}>
-            <span style={{ fontSize: 20 }}>{t.icon}</span>
+            <span style={{ fontSize: tab === t.id ? 22 : 20, transition: "font-size .2s" }}>{t.icon}</span>
             {t.label}
           </button>
         ))}
@@ -444,11 +614,8 @@ function App() {
 
 ReactDOM.render(<App />, document.getElementById("root"));
 </script>
-
 <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
 </body>
 </html>
